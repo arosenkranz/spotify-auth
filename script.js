@@ -1,9 +1,6 @@
-var spotify_CLIENT = "<clientHERE>";
+var spotify_CLIENT = "CLIENT ID GOES HERE";
 
 var stateKey = 'spotify_auth_state';
-
-// initiate spotify
-var spotifyApi = new SpotifyWebApi();
 
 /**
  * Obtains parameters from the hash of the URL
@@ -56,16 +53,6 @@ if (access_token && (state == null || state !== storedState)) {
   console.log("You need to login.");
 } else {
 
-  // set access token to spotify api wrapper
-  spotifyApi.setAccessToken(access_token);
-
-  spotifyApi.getUserPlaylists('alexrosenkranz')
-  .then(function(data) {
-    console.log('User playlists', data);
-  }, function(err) {
-    console.error(err);
-  });
-
   // if authentication is successful, remove item from localStorage
   localStorage.removeItem(stateKey);
   // if there's an access token, get user information
@@ -111,4 +98,23 @@ $('#login-button')
     // change pages and go to the spotify login page
     window.location = url;
   });
+
+/*
+==============================
+EXAMPLE OF API CALL TO SPOTIFY
+==============================
+Just change the url for the endpoint you're looking for
+
+$.ajax({
+    url: 'https://api.spotify.com/v1/me',
+    headers: {
+      'Authorization': 'Bearer ' + access_token
+    }
+  })
+  .then(function (response) {
+    console.log(response);
+  });
+
+*/
+
 
