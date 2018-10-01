@@ -188,7 +188,7 @@ function getUserPlaylists() {
 // print out playlist information
 function printPlaylistInfo(playlistArray) {
   const $playlistInfo = $("#playlist-info");
-
+  $playlistInfo.empty();
   playlistArray.forEach(function (playlist) {
     $("<button>")
       .addClass("list-group-item d-flex justify-content-between align-items-center playlist-button list-group-item-action")
@@ -344,9 +344,9 @@ function getCurrentSong() {
   $.ajax({
     url: "https://api.spotify.com/v1/me/player/currently-playing",
     method: "GET",
-      headers: {
-        'Authorization': "Bearer " + access_token
-      }
+    headers: {
+      'Authorization': "Bearer " + access_token
+    }
   }).then(function(response) {
     const trackUri = response.item.uri;
     console.log(trackUri)
@@ -355,10 +355,51 @@ function getCurrentSong() {
   })
 }
 
+// get categories on load to select from
+function getCategories() {
+  $.ajax({
+    url: "https://api.spotify.com/v1/browse/categories",
+    method: "GET",
+    headers: {
+      'Authorization': "Bearer " + access_token
+    }
+  }).then(function(response) {
+    console.log(response);
+    
+
+    response.categories.items.forEach(function(category) {
+      $("<option>")
+        .val(category.id)
+        .text(category.name)
+        .appendTo($("#categories-list"));
+    })
+  });
+}
+// when selecting categories for playlists
+function selectCategories(event) {
+
+  event.preventDefault();
+  // get categories out of select form
+  const category_id = $(this).val();
+
+  $.ajax({
+    url: `https://api.spotify.com/v1/browse/categories/${category_id}/playlists`,
+    method: "GET",
+    headers: {
+      'Authorization': "Bearer " + access_token
+    }
+  }).then(function(response) {
+    console.log(response);
+    printPlaylistInfo(response.playlists.items);
+  });
+}
+
 
 // BIND CLICK EVENTS
 $(document)
   .ready(function () {
+    // get categories on load
+    getCategories();
     $("#user-playlists").on("click", getUserPlaylists);
     $("#play-button").on("click", resumeSong);
     $("#prev-button").on("click", prevSong);
@@ -368,4 +409,5 @@ $(document)
     $(document).on("click", ".track-button", selectTrack);
     // login button to get access token
     $('#login-button').on('click', spotifyLogin);
+    $("#categories-list").on("change", selectCategories);
   });
