@@ -1,4 +1,4 @@
-const spotify_CLIENT = "";
+const spotify_CLIENT = "3ad7e8dcc3bf4076b4b8ec6bb60f4e10";
 
 let stateKey = 'spotify_auth_state';
 
