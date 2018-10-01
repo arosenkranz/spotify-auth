@@ -70,6 +70,7 @@ if (access_token && (state == null || state !== storedState)) {
       .then(function (response) {
         console.log(response);
         $("#login-button").hide();
+        $("#app-body").show();
 
         userId = response.id;
         $("#profile-info").html(`<h3>${response.display_name}</h3>`);
@@ -447,4 +448,8 @@ $(document)
     // login button to get access token
     $('#login-button').on('click', spotifyLogin);
     $("#categories-list").on("change", selectCategories);
+
+    if (!access_token) {
+      $("#app-body").hide();
+    } 
   });
