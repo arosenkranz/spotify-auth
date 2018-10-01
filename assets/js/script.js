@@ -53,8 +53,8 @@ function generateRandomString(length) {
 // state, then let user know there's an issue with authentication
 if (access_token && (state == null || state !== storedState)) {
   console.log("You need to login.");
+  spotifyLogin();
 } else {
-  $("#login-button").hide();
 
   // if authentication is successful, remove item from localStorage
   localStorage.removeItem(stateKey);
@@ -69,6 +69,8 @@ if (access_token && (state == null || state !== storedState)) {
       })
       .then(function (response) {
         console.log(response);
+        $("#login-button").hide();
+
         userId = response.id;
         $("#profile-info").html(`<h3>${response.display_name}</h3><img class="img-fluid" src="${response.images[0].url}"/>`);
       });
@@ -103,7 +105,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
 
   // Playback status updates
   player.addListener('player_state_changed', state => {
-    console.log(state);
+    // console.log(state);
   });
 
   // Ready
@@ -122,23 +124,22 @@ window.onSpotifyWebPlaybackSDKReady = () => {
   player.connect();
 };
 
-// login button to get access token
-$('#login-button').on('click', function () {
-
-  var client_id = spotify_CLIENT; // Your client id
-  var redirect_uri = 'http://localhost:8000'; // Your redirect uri
+// LOG INTO SPOTIFY
+function spotifyLogin() {
+  const client_id = spotify_CLIENT; // Your client id
+  const redirect_uri = 'http://localhost:8000'; // Your redirect uri
 
   // generate random state key
-  var state = generateRandomString(16);
+  const state = generateRandomString(16);
 
   // set state in localStorage (will read when we get it back)
   localStorage.setItem(stateKey, state);
   // Set scope for authentication privileges
-  var scope = 'streaming user-read-birthdate user-read-private user-read-email user-read-playba' +
+  const scope = 'streaming user-read-birthdate user-read-private user-read-email user-read-playba' +
       'ck-state user-modify-playback-state';
 
   // build out super long url
-  var url = 'https://accounts.spotify.com/authorize';
+  let url = 'https://accounts.spotify.com/authorize';
   url += '?response_type=token';
   url += '&client_id=' + encodeURIComponent(client_id);
   url += '&scope=' + encodeURIComponent(scope);
@@ -147,7 +148,7 @@ $('#login-button').on('click', function () {
 
   // change pages and go to the spotify login page
   window.location = url;
-});
+}
 
 // SET SPOTIFY WEB PLAYER TO BROWSER
 function setWebPlayer(playerId, access_token) {
@@ -160,7 +161,8 @@ function setWebPlayer(playerId, access_token) {
       }
     })
     .then(function (response) {
-      console.log(response)
+      console.log(response);
+
     })
     .catch(function (err) {
       console.log(err);
@@ -189,8 +191,7 @@ function printPlaylistInfo(playlistArray) {
 
   playlistArray.forEach(function (playlist) {
     $("<button>")
-      .addClass("list-group-item d-flex justify-content-between align-items-center playlist-butto" +
-        "n list-group-item-action")
+      .addClass("list-group-item d-flex justify-content-between align-items-center playlist-button list-group-item-action")
       .attr({"data-playlist-id": playlist.id, "data-playlist-uri": playlist.uri})
       .text(playlist.name)
       .append(`<span class="badge badge-danger badge-pill">${playlist.tracks.total}</span>`)
@@ -198,85 +199,173 @@ function printPlaylistInfo(playlistArray) {
   });
 }
 
+// get playlist tracks
+function selectPlaylist() {
+  $(".playlist-button").removeClass("active");
+  $(this).addClass("active");
+  const playlistId = $(this).attr("data-playlist-id");
+  const playlistUri = $(this).attr("data-playlist-uri");
+  console.log(playlistId);
+  $
+    .ajax({
+      url: `https://api.spotify.com/v1/users/${userId}/playlists/${playlistId}/tracks`,
+      method: "GET",
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+    })
+    .then(function (response) {
+      const trackInfo = response
+        .items
+        .map(function (trackInfo) {
+          return trackInfo.track
+        });
+      console.log(trackInfo);
+      printTrackInfo(trackInfo, playlistUri);
+    })
+}
 
-
-  // get playlist tracks
-  function selectPlaylist() {
-    $(".playlist-button").removeClass("active");
-    $(this).addClass("active");
-    const playlistId = $(this).attr("data-playlist-id");
-    const playlistUri = $(this).attr("data-playlist-uri");
-    console.log(playlistId);
-    $
-      .ajax({
-        url: `https://api.spotify.com/v1/users/${userId}/playlists/${playlistId}/tracks`,
-        method: "GET",
-        headers: {
-          'Authorization': "Bearer " + access_token
-        }
-      })
-      .then(function (response) {
-        const trackInfo = response
-          .items
-          .map(function (trackInfo) {
-            return trackInfo.track
-          });
-        console.log(trackInfo);
-        printTrackInfo(trackInfo, playlistUri);
-      })
-  }
-
-  // print tracks to page
+// print tracks to page
 function printTrackInfo(trackArray, playlistContextUri) {
 
   const $trackInfo = $("#track-info");
   $trackInfo.empty();
 
   trackArray.forEach(function (track) {
-    const artists = track.artists.map(artist => artist.name).join(", ");
+    const artists = track
+      .artists
+      .map(artist => artist.name)
+      .join(", ");
 
     $("<button>")
       .addClass("list-group-item d-flex justify-content-between align-items-center track-button list-group-item-action")
       .text(`${artists} - ${track.name}`)
-      .attr({
-        "data-track-uri": track.uri, 
-        "data-context": playlistContextUri
-      })
+      .attr({"data-track-uri": track.uri, "data-context": playlistContextUri})
       .append(`<span class="badge badge-danger badge-pill">${moment(track.duration_ms, "x").format("mm:ss")}</span>`)
       .appendTo($trackInfo);
   });
 }
 
-  // select and play track
-  function selectTrack() {
-    $(".track-button").removeClass("active");
-    $(this).addClass("active");
-    const trackId = $(this).attr("data-track-uri");
-    const contextUri = $(this).attr("data-context");
-    console.log(trackId);
-    $.ajax({
-      url: `https://api.spotify.com/v1/me/player/play?device_id=${playerId}`,
+// select and play track
+function selectTrack() {
+  $(".track-button").removeClass("active");
+  $(this).addClass("active");
+  const trackId = $(this).attr("data-track-uri");
+  const contextUri = $(this).attr("data-context");
+  console.log(trackId);
+  $.ajax({
+    url: `https://api.spotify.com/v1/me/player/play?device_id=${playerId}`,
+    method: "PUT",
+    data: JSON.stringify({
+      "offset": {
+        "uri": trackId
+      },
+      "context_uri": contextUri
+    }),
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+    })
+    .then(function (response) {
+      console.log(response);
+      getCurrentSong();
+    })
+    .catch(function (err) {
+      console.log(err);
+    })
+}
+
+// skip song
+function nextSong() {
+  $
+    .ajax({
+      url: "https://api.spotify.com/v1/me/player/next",
+      method: "POST",
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+    })
+    .then(function (response) {
+      console.log(response);
+      getCurrentSong();
+    });
+}
+
+// previous song
+function prevSong() {
+  $
+    .ajax({
+      url: "https://api.spotify.com/v1/me/player/previous",
+      method: "POST",
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+    })
+    .then(function (response) {
+      console.log(response);
+      getCurrentSong();
+    });
+}
+
+// resume playback
+function resumeSong() {
+  console.log("hi")
+  $
+    .ajax({
+      url: "https://api.spotify.com/v1/me/player/play",
       method: "PUT",
-      data: JSON.stringify({
-        "offset": {
-          "uri": trackId
-        },
-        "context_uri":  contextUri
-      }),
-        headers: {
-          'Authorization': "Bearer " + access_token
-        }
-      })
-      .then(function (response) {
-        console.log(response);
-      })
-      .catch(function (err) {
-        console.log(err);
-      })
-  }
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+    })
+    .then(function (response) {
+      console.log(response);
+    });
+}
 
-  $("#user-playlists").click(getUserPlaylists);
+// pause playback
+function pauseSong() {
+  console.log("hi")
+  $
+    .ajax({
+      url: "https://api.spotify.com/v1/me/player/pause",
+      method: "PUT",
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+    })
+    .then(function (response) {
+      console.log(response);
+    });
+}
 
-  $(document).on("click", ".playlist-button", selectPlaylist);
+// get current song info
+function getCurrentSong() {
+  $.ajax({
+    url: "https://api.spotify.com/v1/me/player/currently-playing",
+    method: "GET",
+      headers: {
+        'Authorization': "Bearer " + access_token
+      }
+  }).then(function(response) {
+    const trackUri = response.item.uri;
+    console.log(trackUri)
+    $(".track-button").removeClass("active");
+    $(`[data-track-uri="${trackUri}"]`).addClass("active");
+  })
+}
 
-  $(document).on("click", ".track-button", selectTrack);
+
+// BIND CLICK EVENTS
+$(document)
+  .ready(function () {
+    $("#user-playlists").on("click", getUserPlaylists);
+    $("#play-button").on("click", resumeSong);
+    $("#prev-button").on("click", prevSong);
+    $("#next-button").on("click", nextSong);
+    $("#pause-button").on("click", pauseSong);
+    $(document).on("click", ".playlist-button", selectPlaylist);
+    $(document).on("click", ".track-button", selectTrack);
+    // login button to get access token
+    $('#login-button').on('click', spotifyLogin);
+  });

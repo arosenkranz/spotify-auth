@@ -3,3 +3,8 @@
   max-height: 50vh;
   overflow: scroll;
 }
+
+#music-player > span {
+  font-size: 3rem;
+  padding: 0 10px;
+}
