@@ -72,7 +72,8 @@ if (access_token && (state == null || state !== storedState)) {
         $("#login-button").hide();
 
         userId = response.id;
-        $("#profile-info").html(`<h3>${response.display_name}</h3><img class="img-fluid" src="${response.images[0].url}"/>`);
+        $("#profile-info").html(`<h3>${response.display_name}</h3>`);
+        // <img class="img-fluid" src="${response.images[0].url}"/>
       });
   }
 }
@@ -173,7 +174,7 @@ function setWebPlayer(playerId, access_token) {
 function getUserPlaylists() {
   $
     .ajax({
-      url: "https://api.spotify.com/v1/me/playlists",
+      url: "https://api.spotify.com/v1/me/playlists?limit=50",
       method: "GET",
       headers: {
         'Authorization': "Bearer " + access_token
@@ -268,7 +269,9 @@ function selectTrack() {
     })
     .then(function (response) {
       console.log(response);
-      getCurrentSong();
+      setTimeout(getCurrentSong, 1500);
+      $("#play-button").attr("data-state", "play")
+      $("#play-button > i").removeClass("fa-play").addClass("fa-pause");
     })
     .catch(function (err) {
       console.log(err);
@@ -287,7 +290,9 @@ function nextSong() {
     })
     .then(function (response) {
       console.log(response);
-      getCurrentSong();
+      setTimeout(getCurrentSong, 1500);
+      $("#play-button").attr("data-state", "play")
+      $("#play-button > i").removeClass("fa-play").addClass("fa-pause");
     });
 }
 
@@ -303,7 +308,9 @@ function prevSong() {
     })
     .then(function (response) {
       console.log(response);
-      getCurrentSong();
+      setTimeout(getCurrentSong, 1500);
+      $("#play-button").attr("data-state", "play")
+      $("#play-button > i").removeClass("fa-play").addClass("fa-pause");
     });
 }
 
@@ -320,6 +327,9 @@ function resumeSong() {
     })
     .then(function (response) {
       console.log(response);
+      setTimeout(getCurrentSong, 1500);
+      $("#play-button").attr("data-state", "play")
+      $("#play-button > i").removeClass("fa-play").addClass("fa-pause");
     });
 }
 
@@ -336,6 +346,8 @@ function pauseSong() {
     })
     .then(function (response) {
       console.log(response);
+      $("#play-button").attr("data-state", "pause")
+      $("#play-button > i").removeClass("fa-pause").addClass("fa-play");
     });
 }
 
@@ -349,9 +361,12 @@ function getCurrentSong() {
     }
   }).then(function(response) {
     const trackUri = response.item.uri;
+    console.log(response.item);
     console.log(trackUri)
     $(".track-button").removeClass("active");
     $(`[data-track-uri="${trackUri}"]`).addClass("active");
+    $("#track").text(response.item.name);
+    $("#artist").text(response.item.artists.map(artist => artist.name).join(", "))
   })
 }
 
@@ -364,9 +379,7 @@ function getCategories() {
       'Authorization': "Bearer " + access_token
     }
   }).then(function(response) {
-    console.log(response);
-    
-
+    // print to left column select box
     response.categories.items.forEach(function(category) {
       $("<option>")
         .val(category.id)
@@ -383,7 +396,7 @@ function selectCategories(event) {
   const category_id = $(this).val();
 
   $.ajax({
-    url: `https://api.spotify.com/v1/browse/categories/${category_id}/playlists`,
+    url: `https://api.spotify.com/v1/browse/categories/${category_id}/playlists?limit=50`,
     method: "GET",
     headers: {
       'Authorization': "Bearer " + access_token
@@ -394,6 +407,20 @@ function selectCategories(event) {
   });
 }
 
+// get featured playlists
+function getFeaturedPlaylists() {
+  $.ajax({
+    url: "https://api.spotify.com/v1/browse/featured-playlists",
+    method: "GET",
+    headers: {
+      'Authorization': "Bearer " + access_token
+    }
+  }).then(function(response) {
+    console.log(response);
+    printPlaylistInfo(response.playlists.items);
+  })
+}
+
 
 // BIND CLICK EVENTS
 $(document)
@@ -401,10 +428,20 @@ $(document)
     // get categories on load
     getCategories();
     $("#user-playlists").on("click", getUserPlaylists);
-    $("#play-button").on("click", resumeSong);
+    $("#featured-playlists").on("click", getFeaturedPlaylists);
+    $("#play-button").on("click", function() {
+      // get state of button
+      const buttonState = $(this).data("state");
+
+      if (buttonState === "play") {
+        pauseSong();
+      } 
+      else if (buttonState === "pause") {
+        resumeSong();
+      }
+    });
     $("#prev-button").on("click", prevSong);
     $("#next-button").on("click", nextSong);
-    $("#pause-button").on("click", pauseSong);
     $(document).on("click", ".playlist-button", selectPlaylist);
     $(document).on("click", ".track-button", selectTrack);
     // login button to get access token

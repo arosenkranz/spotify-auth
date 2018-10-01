@@ -20,8 +20,7 @@
       <h3 id="track"></h3>
       <h4 id="artist" class="text-muted"></h4>
       <span id="prev-button"><i class="fas fa-angle-left"></i></span>
-      <span id="play-button"><i class="fas fa-play"></i></span>
-      <span id="pause-button"><i class="fas fa-pause"></i></span>
+      <span id="play-button" data-state="play"><i class="fas fa-play"></i></span>
       <span id="next-button"><i class="fas fa-angle-right"></i></span>
     </div>
   </div>
@@ -34,6 +33,7 @@
         </div>
         <div id="user-buttons" class="my-3">
           <div class="btn btn-primary btn-block" id="user-playlists">Get User Playlists</div>
+          <div class="btn btn-info btn-block" id="featured-playlists">Get Featured Playlists</div>
           <form id="categories" class="mt-4">
             <h4>Select Categories to Search For</h4>
             <div class="form-group">
