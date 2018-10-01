@@ -128,7 +128,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
 // LOG INTO SPOTIFY
 function spotifyLogin() {
   const client_id = spotify_CLIENT; // Your client id
-  const redirect_uri = 'http://localhost:8000'; // Your redirect uri
+  const redirect_uri = (location.hostname === "localhost") ? "http://localhost:8000" : 'https://alexrosenkranz.github.io/spotify-auth'; 
 
   // generate random state key
   const state = generateRandomString(16);
